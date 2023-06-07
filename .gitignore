@@ -1,0 +1,17 @@
+#cache
+desktop.ini
+__pycache__
+
+# dataset
+dataset
+*.npy
+
+# scrap
+scrap.*
+
+# unused ones
+IFE_LVQ.ipynb
+IFE_NN.ipynb
+IFE_CNN.ipynb
+GAN.ipynb
+LVQ/
