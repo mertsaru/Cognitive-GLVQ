@@ -3,8 +3,8 @@ desktop.ini
 __pycache__
 
 # dataset
-dataset
-*.npy
+dataset/
+
 
 # scrap
 scrap.*
@@ -14,4 +14,4 @@ IFE_LVQ.ipynb
 IFE_NN.ipynb
 IFE_CNN.ipynb
 GAN.ipynb
-LVQ/
+LVQ_NN/

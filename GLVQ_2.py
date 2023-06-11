@@ -1,6 +1,6 @@
 import numpy as np
 
-import helper_func as hf
+import measure as hf
 
 class GLVQ():
 
