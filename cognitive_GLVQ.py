@@ -53,13 +53,55 @@ class GLVQ_c():
                 correct += 1
         return correct / len(test_set)
     
-    def f1_score(self, test_set):
-        pass
-
-    def test_measure(self, test_set):
-        correct = 0
+    def f1_score(self, test_set, f1_beta: float):
+        """
+        test_set: test set
+        f1_beta: parameter for the f1_score"""
+        TP = FP = FN = TN = 0
         for x in test_set:
-            pass
+            x_feature = x[0]
+            x_label = x[1]
+            x_prediction = self.prediction(x_feature)
+            if x_prediction == x_label:
+                if x_prediction == 1:
+                    TP += 1
+                else:
+                    TN += 1
+            else:
+                if x_prediction == 1:
+                    FP += 1
+                else:
+                    FN += 1
+        precision = TP / (TP + FP)
+        recall = TP / (TP + FN)
+        return (1+(f1_beta**2)) * precision * recall / ((f1_beta**2) * (precision + recall))
+
+    def test_measure(self, test_set, f1_beta: float):
+        """
+        test_measure calculates both the accuracy and the f1_score
+        test_set: test set
+        f1_beta: parameter for the f1_score"""
+        correct = TP = FP = TN = FN = 0
+        for x in test_set:
+            x_feature = x[0]
+            x_label = x[1]
+            x_prediction = self.prediction(x_feature)
+            if x_prediction == x_label:
+                correct += 1
+                if x_prediction == 1:
+                    TP += 1
+                else:
+                    TN += 1
+            else:
+                if x_prediction == 1:
+                    FP += 1
+                else:
+                    FN += 1
+        accuracy = correct / len(test_set)
+        precision = TP / (TP + FP)
+        recall = TP / (TP + FN)
+        f1_score = (1+(f1_beta**2)) * precision * recall / ((f1_beta**2) * (precision + recall))
+        return accuracy, f1_score
 
     def local_loss(self, x):
         x_feature = x[0]
@@ -95,7 +137,7 @@ class GLVQ_c():
     #    values.update({"lr": 1 - R})
     #    return values["lr"]
     
-    def train(self, num_epochs : int, training_set, test_set, update_lr, alpha : float = None, beta: float = None, measure = "accuracy"):
+    def train(self, num_epochs : int, training_set, test_set, update_lr, alpha : float = None, beta: float = None, measure = "accuracy", f1_beta: float = 1):
         """
         num_epochs: number of epochs
         training_set: training set
@@ -163,13 +205,15 @@ class GLVQ_c():
                 f1 = None
             elif measure == "f1_score":
                 acc = None
-                f1 = self.f1_score(test_set)
+                f1 = self.f1_score(test_set, f1_beta)
             elif measure == "test_measure":
-                acc = self.accuracy(test_set)
-                f1 = self.f1_score(test_set)
-
+                acc, f1 = self.test_measure(test_set, f1_beta)
+                
             hist = {"epoch": epoch + 1, "loss": global_loss / len(self.training), "accuracy": acc, "f1_score": f1, "prototypes": self.prototypes}
             history.append(hist)
+
+            if epoch % 10 == 9 or epoch == num_epochs - 1:
+                print("Epoch: ", epoch + 1, " Loss: ", hist["loss"], " Accuracy: ", acc, " F1_score: ", f1)
         return history
 
 

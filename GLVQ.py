@@ -1,7 +1,5 @@
 import numpy as np
 
-import measure as hf
-
 class GLVQ():
 
     def __init__(self, prototypes, training_set, learning_rate):
@@ -18,6 +16,9 @@ class GLVQ():
                 "lr": learning_rate
             }
         return prototypes_dict
+    
+    def sigmoid(self, x):
+        return 1 / (1 + np.exp(-x))
         
     def prediction(self, x):
         distance = None
@@ -53,7 +54,7 @@ class GLVQ():
                     d_2 = dist_p_x
                     winner_false = prototype
         
-        loss = hf.sigmoid((d_1 - d_2)/(d_1 + d_2))
+        loss = self.sigmoid((d_1 - d_2)/(d_1 + d_2))
         return loss, d_1, winner_true, d_2, winner_false
     
     def train(self):

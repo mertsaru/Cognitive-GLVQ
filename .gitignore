@@ -1,6 +1,8 @@
 #cache
 desktop.ini
 __pycache__
+.vscode
+.gitignore
 
 # dataset
 dataset/
