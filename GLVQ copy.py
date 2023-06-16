@@ -1,33 +1,19 @@
 import numpy as np
 
-"""
-values = {
-    "feature" : narray,
-    "label" : int,
-    "lr" : float,
-    "a": int,
-    "b": int,
-    "c": int,
-    "d": int,
-    "update_sum": np.zeros(len(training_set[0][0]))
-    }"""
+class GLVQ():
 
-class CGLVQ():
-
-    def __init__(self, prototypes: list):
-        """
-        prototypes: list of tuples (feature, label)"""
-        self.feature_size = len(prototypes[0][0]) 
-        self.prototypes = self.create_prototype_dict(prototypes)
+    def __init__(self, prototypes: list, learning_rate: float):
+        self.feature_size = len(prototypes[0][0])
+        self.prototypes = self.create_prototype_dict(prototypes, learning_rate)
         self.datatype = prototypes[0][0].dtype
     
-    def create_prototype_dict(self, prototypes):
+    def create_prototype_dict(self, prototypes, learning_rate):
         prototypes_dict = {}
         for i, p in enumerate(prototypes):
             prototypes_dict[i] = {
                 "feature": p[0],
                 "label": p[1],
-                "lr": 0
+                "lr": learning_rate
             }
         return prototypes_dict
     
@@ -36,7 +22,7 @@ class CGLVQ():
         
     def prediction(self, x):
         distance = None
-        for values in self.prototypes.values():
+        for prototype, values in self.prototypes.items():
             if self.datatype == np.float64\
                 or self.datatype == np.int32:
                 dist_p_x = np.sum((values["feature"] - x) ** 2)
@@ -45,11 +31,13 @@ class CGLVQ():
             if distance is None:
                 distance = dist_p_x
                 winner = values["label"]
+                winner_prototype = prototype
             elif dist_p_x < distance:
                 distance = dist_p_x
                 winner = values["label"]
-        return winner
-    
+                winner_prototype = prototype
+        return winner_prototype, winner
+
     def accuracy(self, test_set):
         correct = 0
         for x in test_set:
@@ -124,11 +112,11 @@ class CGLVQ():
         d_1 = None
         d_2 = None
         for prototype, values in self.prototypes.items():
-            if self.datatype == np.csingle:
-                dist_p_x = np.sum(np.abs(values["feature"] - x_feature))
-            elif self.datatype == np.float64 \
+            if self.datatype == np.float64\
                 or self.datatype == np.int32:
                 dist_p_x = np.sum((values["feature"] - x_feature) ** 2)
+            elif self.datatype == np.csingle:
+                dist_p_x = np.sum(np.abs(values["feature"] - x_feature))
             if values["label"] == x_label:
                 if d_1 is None:
                     d_1 = dist_p_x
@@ -147,29 +135,10 @@ class CGLVQ():
         loss = self.sigmoid((d_1 - d_2)/(d_1 + d_2))
         return loss, d_1, winner_true, d_2, winner_false
     
-    def train(self, num_epochs : int, training_set: list, test_set: list, update_lr, validation_set: list = None, measure = "accuracy", f1_beta: float = 1):
-        """
-        num_epochs: number of epochs
-        training_set: training set list of tuples (feature, label)
-        test_set: test set list of tuples (feature, label)
-        update_lr: function to update the learning rate
-        validation_set: validation set list of tuples (feature, label)
-        alpha: parameter for the MS GLVQ learning rate update function
-        beta: parameter for the MS GLVQ learning rate update function
-        measure: measure to evaluate the model (accuracy or f1_score)"""
-
+    def train(self, num_epochs: int, training_set: list, test_set: list, measure = "test_measure"):
         history = []
-        for epoch in range(num_epochs):    
-            # Clear accurence_frequncy
-            for values in self.prototypes.values():
-                values.update({
-                            "a": 0,
-                            "b": 0,
-                            "c": 0,
-                            "d": 0,
-                            "update_sum": np.zeros(self.feature_size, dtype=self.datatype)
-                })
-
+        for epoch in range(num_epochs):
+            
             # Clear loss
             global_loss = 0
 
@@ -177,63 +146,47 @@ class CGLVQ():
                 x_feature = x[0]
                 x_label = x[1]
                 loss, d_1, winner_true, d_2, winner_false = self.local_loss(x)
-                x_prediction = self.prediction(x_feature)
+                winner_prototype, x_prediction = self.prediction(x_feature)
                 
-                # Update global_loss
-                if validation_set is None:
-                    global_loss += loss
+                # Update learning_rate update_sum
+                if self.prototypes[winner_prototype]["label"] == x_label:
+                    s = 1
+                else:
+                    s = -1
+                self.prototypes[winner_prototype]["lr"] = self.prototypes[winner_prototype]["lr"] / (1 + (s * self.prototypes[winner_prototype]["lr"]))
 
-                # Update accurence_frequncy
-                for values in self.prototypes.values():
-                    if values["label"] == x_prediction and x_label == x_prediction:
-                        values["a"] += 1
-                    elif values["label"] == x_prediction and x_label != x_prediction:
-                        values["b"] += 1
-                    elif values["label"] != x_prediction and x_label == x_prediction:
-                        values["c"] += 1
-                    elif values["label"] != x_prediction and x_label != x_prediction:
-                        values["d"] += 1
+                # Update global_loss
+                global_loss += loss
 
                 # Update prototypes update_sum
                 common_multiplier = (4 * loss * (1-loss) / ((d_1 + d_2) ** 2))
 
                 ## update winner_true update_sum
-                self.prototypes[winner_true]["update_sum"] += common_multiplier * d_2 * (x_feature - self.prototypes[winner_true]["feature"])
-                
+                self.prototypes[winner_true]["loss_update_sum"] += common_multiplier * d_2 * (x_feature - self.prototypes[winner_true]["feature"])
+
                 ## update winner_false update_sum
-                self.prototypes[winner_false]["update_sum"] -= common_multiplier * d_1 * (x_feature - self.prototypes[winner_false]["feature"])
-
-            if validation_set is not None:
-                for x in validation_set:
-                    loss, _, _, _, _ = self.local_loss(x)
-                    global_loss += loss
-                global_loss /= len(validation_set)
-            else:
-                global_loss /= len(training_set)
-
+                self.prototypes[winner_false]["loss_update_sum"] -= common_multiplier * d_1 * (x_feature - self.prototypes[winner_false]["feature"])
+            
             # Train prototypes
             for values in self.prototypes.values():
                 
-                ## Update learning rate
-                update_lr(values = values)
-                
                 ## Update prototypes
-                values["feature"] += values["lr"] * values["update_sum"]
-            
+                values["feature"] += values["lr"] * values["loss_update_sum"]
+
             if measure == "accuracy":
                 acc = self.accuracy(test_set)
                 f1 = None
             elif measure == "f1_score":
                 acc = None
-                f1 = self.f1_score(test_set, f1_beta)
+                f1 = self.f1_score(test_set, 1)
             elif measure == "test_measure":
-                acc, f1 = self.test_measure(test_set, f1_beta)
-                
-            hist = {"epoch": epoch + 1, "loss": global_loss, "accuracy": acc, "f1_score": f1, "prototypes": self.prototypes}
+                acc, f1 = self.test_measure(test_set, 1)
+
+            hist = {"loss": global_loss / len(training_set),"accuracy": acc, "f1_score": f1 ,"prototypes": self.prototypes}
             history.append(hist)
 
             if epoch % 10 == 9 or epoch == num_epochs - 1:
-                print("Epoch: ", epoch + 1, " Loss: ", hist["loss"], " Accuracy: ", acc, " F1_score: ", f1)
+                print("Epoch: ", epoch+1, " Loss: ", global_loss / len(training_set), " Accuracy: ", acc, " F1_score: ", f1)
         return history
 
 

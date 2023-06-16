@@ -23,27 +23,46 @@ def middle_symmetry(values: dict, lr_alpha: float, lr_beta: float):
     values.update({"lr": 1 - R})
 
 
-def conditional_probability(values: dict, lr_alpha: float, lr_beta: float):
-    R = values["a"] / (values["a"] + values["b"])
+def conditional_probability(values: dict):
+    if values["a"] == 0:
+        R = 0
+    else:
+        R = values["a"] / (values["a"] + values["b"])
     values.update({"lr": 1 - R})
 
 
-def dual_factor_heuristic(values: dict, lr_alpha: float, lr_beta: float):
-    R = values["a"] / np.sqrt((values["a"] + values["b"]) * (values["a"] + values["c"]))
+def dual_factor_heuristic(values: dict):
+    if values["a"] == 0:
+        R = 0
+    else:
+        R = values["a"] / np.sqrt((values["a"] + values["b"]) * (values["a"] + values["c"]))
     values.update({"lr": 1 - R})
 
 
-def loose_symmetry(values: dict, lr_alpha: float, lr_beta: float):
-    R = (
-        (values["a"] + (values["b"] * values["d"] / (values["b"] + values["d"]))) 
-        / 
-        (values["a"] + (values["b"] * values["d"] / (values["b"] + values["d"]))
-        + values["b"] + (values["c"] * values["a"] / (values["c"] + values["a"])))
-    )
+def loose_symmetry(values: dict):
+    if values["b"] + values["d"] == 0:
+        R = (
+            values["a"]
+            /
+            values["a"] + values["b"] +  (values["c"] * values["a"] / (values["c"] + values["a"]))
+        )
+    elif values["c"] + values["a"] == 0:
+        R = (
+            values["a"] + (values["b"] * values["d"] / (values["b"] + values["d"]))
+            /
+            values["a"] + (values["b"] * values["d"] / (values["b"] + values["d"])) + values["b"]
+        )
+    else:
+        R = (
+            (values["a"] + (values["b"] * values["d"] / (values["b"] + values["d"]))) 
+            / 
+            (values["a"] + (values["b"] * values["d"] / (values["b"] + values["d"]))
+            + values["b"] + (values["c"] * values["a"] / (values["c"] + values["a"])))
+        )
     values.update({"lr": 1 - R})
 
 
-def loose_symmetry_rarity(values: dict, lr_alpha: float, lr_beta: float):
+def loose_symmetry_rarity(values: dict):
     R = (
         (values["a"] + values["b"]) 
         / 

@@ -69,7 +69,7 @@ class GLVQ():
             winner_prototype, x_prediction = self.prediction(x_feature)
             
             # Update learning_rate
-            if self.prototypes[winner_prototype]["label"] == x_label:
+            if x_prediction == x_label:
                 s = 1
             else:
                 s = -1
