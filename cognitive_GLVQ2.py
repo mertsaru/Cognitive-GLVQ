@@ -15,12 +15,12 @@ values = {
 
 class CGLVQ():
 
-    def __init__(self, prototypes: list):
+    def __init__(self, prototypes: list,lr):
         """
         prototypes: list of tuples (feature: (np.array), label: (np.array))"""
         self.feature_size = len(prototypes[0][0])
         prototypes_copy = copy.deepcopy(prototypes) 
-        self.prototypes = self.create_prototype_dict(prototypes_copy)
+        self.prototypes = self.create_prototype_dict(prototypes_copy,lr)
         self.datatype = prototypes[0][0].dtype
         self.labeltype = prototypes[0][1].dtype
         self.epoch = 0
@@ -53,13 +53,13 @@ class CGLVQ():
         unique_class = np.array(unique_class, dtype=self.labeltype)
         return unique_class
     
-    def create_prototype_dict(self, prototypes):
+    def create_prototype_dict(self, prototypes,lr):
         prototypes_dict = {}
         for i, p in enumerate(prototypes):
             prototypes_dict[i] = {
                 "feature": p[0],
                 "label": p[1],
-                "lr": 0
+                "lr": lr
             }
         return prototypes_dict
     
@@ -157,8 +157,10 @@ class CGLVQ():
                     elif values["label"] != x_prediction and x_label != x_prediction:
                         values["d"] += 1
 
-                if self.epoch == 0:
-                    continue
+                # Update learning rate
+                for values in self.prototypes.values():
+                    update_lr(values = values)
+
                 
                 # Update prototypes
                 common_multiplier = (4 * loss * (1-loss) / ((d_1 + d_2) ** 2))
@@ -184,10 +186,6 @@ class CGLVQ():
                 global_loss /= len(validation_set)
             else:
                 global_loss /= len(training_set)
-
-            # Update learning rate
-            for values in self.prototypes.values():
-                update_lr(values = values)
 
             # Append learning rate to lr_history
             stored_classes = []
