@@ -15,12 +15,14 @@ values = {
 
 class CGLVQ():
 
-    def __init__(self, prototypes: list):
+    def __init__(self, prototypes: list, lr: float):
         """
-        prototypes: list of tuples (feature: (np.array), label: (np.array))"""
+        prototypes: list of tuples (feature: (np.array), label: (np.array))
+        lr: global learning rate"""
         self.feature_size = len(prototypes[0][0])
         prototypes_copy = copy.deepcopy(prototypes) 
-        self.prototypes = self.create_prototype_dict(prototypes_copy)
+        self.global_lr = lr
+        self.prototypes = self.create_prototype_dict(prototypes_copy,lr)
         self.datatype = prototypes[0][0].dtype
         self.labeltype = prototypes[0][1].dtype
         self.epoch = 0
@@ -53,13 +55,13 @@ class CGLVQ():
         unique_class = np.array(unique_class, dtype=self.labeltype)
         return unique_class
     
-    def create_prototype_dict(self, prototypes):
+    def create_prototype_dict(self, prototypes,lr):
         prototypes_dict = {}
         for i, p in enumerate(prototypes):
             prototypes_dict[i] = {
                 "feature": p[0],
                 "label": p[1],
-                "lr": 0
+                "lr": lr
             }
         return prototypes_dict
     
@@ -109,8 +111,13 @@ class CGLVQ():
         loss = self.sigmoid((d_1 - d_2)/(d_1 + d_2))
         return loss, d_1, winner_true, d_2, winner_false
     
-    def train(self, num_epochs : int, training_set: list, test_set: list, update_lr, validation_set: list = None, f_score_beta: float = 1):
+    def train(self, num_epochs : int, training_set: list, test_set: list, update_lr, validation_set: list = None, f_score_beta: float = 1) -> list:
         """
+        Trains the model.
+        If validation_set is not None, the loss will be calculated with the validation set. 
+        Else, the loss will be calculated with the training set.
+
+        Parameters:
         num_epochs: number of epochs
         training_set: training set list of tuples (feature, label)
         test_set: test set list of tuples (feature, label)
@@ -118,7 +125,14 @@ class CGLVQ():
         validation_set: validation set list of tuples (feature, label)
         alpha: parameter for the MS GLVQ learning rate update function
         beta: parameter for the MS GLVQ learning rate update function
-        measure: measure to evaluate the model (accuracy or f1_score)"""
+        measure: measure to evaluate the model (accuracy or f1_score)
+        
+        Output:
+        history: list of dictionary {"epoch":,
+                                    "loss":,
+                                    "accuracy":,
+                                    "f1_score":,
+                                    "prototypes")"""
 
         if len(self.classes) == 1:
             print("Error: there is only one class in the prototypes")
@@ -157,8 +171,10 @@ class CGLVQ():
                     elif values["label"] != x_prediction and x_label != x_prediction:
                         values["d"] += 1
 
-                if self.epoch == 0:
-                    continue
+                # Update learning rate
+                for values in self.prototypes.values():
+                    update_lr(values = values, global_lr = self.global_lr)
+
                 
                 # Update prototypes
                 common_multiplier = (4 * loss * (1-loss) / ((d_1 + d_2) ** 2))
@@ -184,10 +200,6 @@ class CGLVQ():
                 global_loss /= len(validation_set)
             else:
                 global_loss /= len(training_set)
-
-            # Update learning rate
-            for values in self.prototypes.values():
-                update_lr(values = values)
 
             # Append learning rate to lr_history
             stored_classes = []
@@ -238,9 +250,9 @@ class CGLVQ():
             hist = {"epoch": self.epoch, "loss": global_loss, "accuracy": acc, "f_score": f_dict, "prototypes": self.prototypes}
             self.history.append(hist)
 
-            #if epoch % 10 == 0 or epoch == num_epochs:
-            #    print(f"Epoch: {self.epoch}, Loss: {global_loss:.4f}, Accuracy: {acc*100:.2f} %, F_{f_score_beta}_score: {[{class_name: f'{round(val*100,2)} %'} for class_name, val in f_dict.items()]}")
             self.epoch += 1
+            if self.epoch % 10 == 0 or epoch == num_epochs:
+                print(f"Epoch: {self.epoch}, Loss: {global_loss:.4f}, Accuracy: {acc*100:.2f} %") # , F_{f_score_beta}_score: {[{class_name: f'{round(val*100,2)} %'} for class_name, val in f_dict.items()]}
         return self.history
     
     def lr_graph(self, title: str = None):

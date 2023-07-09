@@ -128,7 +128,10 @@ class GLVQ():
                     s = 1
                 else:
                     s = -1
-                self.prototypes[winner_prototype]["lr"] = self.prototypes[winner_prototype]["lr"] / (1 + (s * self.prototypes[winner_prototype]["lr"]))
+                self.prototypes[winner_prototype]["lr"] = (
+                    self.prototypes[winner_prototype]["lr"] 
+                    / (1 + (s * self.prototypes[winner_prototype]["lr"]))
+                )
 
                 # Update prototypes
                 common_multiplier = (4 * loss * (1-loss) / ((d_1 + d_2) ** 2))
