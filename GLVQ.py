@@ -107,15 +107,12 @@ class GLVQ:
         training_set: list of tuples (feature: (np.array), label: (np.array)))
         test_set: list of tuples (feature: (np.array), label: (np.array)))
         """
-
         if len(self.classes) == 1:
             print("Error: there is only one class in the prototypes")
             return
-
         for epoch in range(num_epochs):
             # Clear loss
             global_loss = 0
-
             for x in training_set:
                 x_feature, x_label = x
                 loss, d_1, winner_true, d_2, winner_false = self.local_loss(x)
@@ -143,6 +140,7 @@ class GLVQ:
                     * d_2
                     * (x_feature - self.prototypes[winner_true]["feature"])
                 )
+
 
                 ## update winner_false
                 self.prototypes[winner_false]["feature"] -= (
