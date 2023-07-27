@@ -140,6 +140,8 @@ class GLVQ:
                     * d_2
                     * (x_feature - self.prototypes[winner_true]["feature"])
                 )
+
+
                 ## update winner_false
                 self.prototypes[winner_false]["feature"] -= (
                     self.prototypes[winner_false]["lr"]

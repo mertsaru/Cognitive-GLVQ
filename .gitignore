@@ -17,6 +17,5 @@ IFE_CNN.ipynb
 GAN.ipynb
 LVQ_NN/
 
-# tests
-model_testing*
-
+# models
+model_testing\.*

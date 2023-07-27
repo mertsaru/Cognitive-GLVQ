@@ -56,6 +56,7 @@ def loose_symmetry(values: dict, global_lr: float):
             R = values["a"] / (
                 values["a"] + (values["c"] * values["a"] / (values["c"] + values["a"]))
             )
+
     else:
         R = (
             values["a"] + (values["b"] * values["d"] / (values["b"] + values["d"]))
@@ -85,6 +86,9 @@ def loose_symmetry_rarity(values: dict, global_lr: float):
             )
     elif values["c"] == 0:
         R = (values["a"] + values["b"]) / (values["a"] + (2 * values["b"]))
+
+
+
     else:
         R = (values["a"] + values["b"]) / (
             values["a"]
