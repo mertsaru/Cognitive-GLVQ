@@ -16,3 +16,6 @@ IFE_NN.ipynb
 IFE_CNN.ipynb
 GAN.ipynb
 LVQ_NN/
+
+# models
+model_testing\.*
