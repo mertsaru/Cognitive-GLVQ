@@ -14,11 +14,20 @@ values = {
 
 
 # Update the learning rate of the prototypes
-def middle_symmetry(values: dict, lr_alpha: float, lr_beta: float):
-    R = (values["a"] + (lr_beta * values["d"])) / (
-        values["a"] + (lr_beta * values["d"]) + values["b"] + (lr_alpha * values["c"])
-    )
-    values.update({"lr": 1 - R})
+def middle_symmetry(
+    values: dict, global_lr: float, lr_alpha: float = 1, lr_beta: float = 0
+):
+    if values["a"] == 0:
+        R = 0
+    else:
+        R = (values["a"] + (lr_beta * values["d"])) / (
+            values["a"]
+            + (lr_beta * values["d"])
+            + values["b"]
+            + (lr_alpha * values["c"])
+        )
+    updated_lr = global_lr * (1 - R)
+    values.update({"lr": updated_lr})
 
 
 def conditional_probability(values: dict, global_lr: float):
@@ -86,8 +95,6 @@ def loose_symmetry_rarity(values: dict, global_lr: float):
             )
     elif values["c"] == 0:
         R = (values["a"] + values["b"]) / (values["a"] + (2 * values["b"]))
-
-
 
     else:
         R = (values["a"] + values["b"]) / (
