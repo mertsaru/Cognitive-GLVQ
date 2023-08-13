@@ -11,25 +11,28 @@ class GLVQ:
         self.datatype = prototypes[0][0].dtype
         self.labeltype = prototypes[0][1].dtype
         self.epoch = 0
-        self.history = []
-        self.classes = self.get_class(prototypes)
-        self.colors = {
-            0: "red",
-            1: "green",
-            2: "blue",
-            3: "yellow",
-            4: "black",
-            5: "orange",
-            6: "purple",
-            7: "pink",
+        self.history = {
+            "lr": {i: [] for i in range(len(prototypes))},
+            "loss": [],
+            "accuracy": [],
+            "f_score": [],
         }
-        self.lr_hist = self.lr_list()
+        self.classes = self.get_class(prototypes)
+        self.colors = self.get_colors(prototypes)
 
-    def lr_list(self):
-        lr_hist = {}
-        for i in self.classes:
-            lr_hist[i] = []
-        return lr_hist
+    def get_colors(self, prototypes):
+        color_list = [
+            "red",
+            "green",
+            "blue",
+            "yellow",
+            "black",
+            "orange",
+            "purple",
+            "pink",
+        ]
+        unique_class = self.get_class(prototypes)
+        return {unique_class[i]: color_list[i] for i in range(len(unique_class))}
 
     def get_class(self, prototypes):
         list_labels = []
@@ -101,18 +104,33 @@ class GLVQ:
         training_set: list,
         test_set: list,
         f_score_beta: float = 1.0,
+        sample_number: dict = None,
+        optimizer: str = "glvq",
     ):
         """
         num_epochs: number of epochs
         training_set: list of tuples (feature: (np.array), label: (np.array)))
         test_set: list of tuples (feature: (np.array), label: (np.array)))
+        optimizer: lvq1 or glvq
         """
         if len(self.classes) == 1:
             print("Error: there is only one class in the prototypes")
             return
+
+        if sample_number is None:
+            print("Error: sample_number is None")
+            return
+
+        sum_samples = sum(sample_number.values())
+        sample_weight = {
+            class_num: sample / sum_samples
+            for class_num, sample in sample_number.items()
+        }
+
         for epoch in range(num_epochs):
             # Clear loss
             global_loss = 0
+            # Tranining
             for x in training_set:
                 x_feature, x_label = x
                 loss, d_1, winner_true, d_2, winner_false = self.local_loss(x)
@@ -121,41 +139,64 @@ class GLVQ:
                 # Update global_loss
                 global_loss += loss
 
-                # Update learning_rate of winner_prototype
-                if x_prediction == x_label:
-                    s = 1
-                else:
-                    s = -1
-                self.prototypes[winner_prototype]["lr"] = self.prototypes[
-                    winner_prototype
-                ]["lr"] / (1 + (s * self.prototypes[winner_prototype]["lr"]))
+                common_multiplier = loss * (1 - loss) / ((d_1 + d_2) ** 2)
+
+                # Update learning_rate
+                if optimizer == "lvq1":
+                    if x_prediction == x_label:
+                        s = 1
+                    else:
+                        s = -1
+                    self.prototypes[winner_prototype]["lr"] = self.prototypes[
+                        winner_prototype
+                    ]["lr"] / (1 + (s * self.prototypes[winner_prototype]["lr"]))
+                elif optimizer == "glvq":
+                    self.prototypes[winner_true]["lr"] = self.prototypes[winner_true][
+                        "lr"
+                    ] / (
+                        1
+                        + (
+                            1
+                            * self.prototypes[winner_true]["lr"]
+                            * common_multiplier
+                            * d_2
+                        )
+                    )
+
+                    self.prototypes[winner_false]["lr"] = self.prototypes[winner_false][
+                        "lr"
+                    ] / (
+                        1
+                        + (
+                            -1
+                            * self.prototypes[winner_false]["lr"]
+                            * common_multiplier
+                            * d_1
+                        )
+                    )
 
                 # Update prototypes
-                common_multiplier = 4 * loss * (1 - loss) / ((d_1 + d_2) ** 2)
-
                 ## update winner_true
                 self.prototypes[winner_true]["feature"] += (
                     self.prototypes[winner_true]["lr"]
+                    * 4
                     * common_multiplier
                     * d_2
                     * (x_feature - self.prototypes[winner_true]["feature"])
                 )
 
-
                 ## update winner_false
                 self.prototypes[winner_false]["feature"] -= (
                     self.prototypes[winner_false]["lr"]
+                    * 4
                     * common_multiplier
                     * d_1
                     * (x_feature - self.prototypes[winner_false]["feature"])
                 )
 
-            # Append learning rate to lr_history
-            stored_classes = []
-            for values in self.prototypes.values():
-                if values["label"] not in stored_classes:
-                    self.lr_hist[values["label"][0]].append(values["lr"])
-                    stored_classes.append(values["label"])
+            # # Append learning rate to lr_history
+            # for i, values in enumerate(self.prototypes.values()):
+            #     self.lr_hist[i].append(values["lr"])
 
             # Calculate f-score and accuracy
             correct = 0
@@ -201,32 +242,70 @@ class GLVQ:
                         / ((f_score_beta**2) * (precision + recall))
                     )
                 f_dict[class_name] = score
+            weighted_f_score = 0
+            for class_name, value in f_dict.items():
+                weighted_f_score += value * sample_weight[class_name]
 
             self.epoch += 1
-            hist = {
-                "epoch": self.epoch,
-                "loss": global_loss,
-                "accuracy": acc,
-                "f_score": f_dict,
-                "prototypes": self.prototypes,
-            }
-            self.history.append(hist)
 
-            # if epoch % 10 == 9 or epoch == num_epochs:
-            #    print(f"Epoch: {self.epoch}, Loss: {global_loss:.4f}, Accuracy: {acc*100:.2f} %, F_{f_score_beta}_score: {[{class_name: f'{round(val*100,2)} %'} for class_name, val in f_dict.items()]}")
+            # Update history
+            ## Update learning rate history
+            for i, values in enumerate(self.prototypes.values()):
+                self.history["lr"][i].append(values["lr"])
+            ## Update loss history
+            self.history["loss"].append(global_loss)
+            ## Update accuracy history
+            self.history["accuracy"].append(acc)
+            ## Update f-score history
+            self.history["f_score"].append(weighted_f_score)
+
+            if epoch % 10 == 0 or epoch == num_epochs:
+                print(
+                    f"Epoch: {self.epoch}, Loss: {global_loss:.4f}, Accuracy: {acc*100:.2f} %, F_{f_score_beta}_score: {weighted_f_score*100:.2f} %"
+                )
         return self.history
 
-    def lr_graph(self, title: str = None):
-        for class_name, lr_list in self.lr_hist.items():
+    def lr_graph(self, title: str = None, marker: str = None):
+        used_labels = []
+        for prototype_name, lr in self.history["lr"].items():
+            if self.prototypes[prototype_name]["label"][0] in used_labels:
+                label = None
+            else:
+                label = self.prototypes[prototype_name]["label"][0]
+                used_labels.append(label)
             plt.plot(
                 range(self.epoch),
-                lr_list,
-                label=class_name,
-                color=self.colors[class_name],
+                lr,
+                label=label,
+                color=self.colors[self.prototypes[prototype_name]["label"][0]],
+                marker=marker,
+                linestyle="dashed",
             )
         plt.xlabel("Epoch")
         plt.ylabel("Learning rate")
         plt.legend()
-        if title is not None:
+        if title:
+            plt.title(title)
+        plt.show()
+
+    def acc_graph(self, title: str = None):
+        plt.plot(
+            range(self.epoch),
+            self.history["accuracy"],
+        )
+        plt.xlabel("Epoch")
+        plt.ylabel("Accuracy")
+        if title:
+            plt.title(title)
+        plt.show()
+
+    def f1_graph(self, title: str = None):
+        plt.plot(
+            range(self.epoch),
+            self.history["f_score"],
+        )
+        plt.xlabel("Epoch")
+        plt.ylabel("F Score")
+        if title:
             plt.title(title)
         plt.show()

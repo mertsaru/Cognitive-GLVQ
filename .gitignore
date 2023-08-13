@@ -18,4 +18,4 @@ GAN.ipynb
 LVQ_NN/
 
 # models
-model_testing\.*
+model_testing*.ipynb

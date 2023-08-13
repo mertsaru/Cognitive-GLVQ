@@ -26,25 +26,28 @@ class CGLVQ:
         self.datatype = prototypes[0][0].dtype
         self.labeltype = prototypes[0][1].dtype
         self.epoch = 0
-        self.history = []
-        self.classes = self.get_class(prototypes)
-        self.colors = {
-            0: "red",
-            1: "green",
-            2: "blue",
-            3: "yellow",
-            4: "black",
-            5: "orange",
-            6: "purple",
-            7: "pink",
+        self.history = {
+            "lr": {i: [] for i in range(len(prototypes))},
+            "loss": [],
+            "accuracy": [],
+            "f_score": [],
         }
-        self.lr_hist = self.lr_list()
+        self.classes = self.get_class(prototypes)
+        self.colors = self.get_colors(prototypes)
 
-    def lr_list(self):
-        lr_hist = {}
-        for i in self.classes:
-            lr_hist[i] = []
-        return lr_hist
+    def get_colors(self, prototypes):
+        color_list = [
+            "red",
+            "green",
+            "blue",
+            "yellow",
+            "black",
+            "orange",
+            "purple",
+            "pink",
+        ]
+        unique_class = self.get_class(prototypes)
+        return {unique_class[i]: color_list[i] for i in range(len(unique_class))}
 
     def get_class(self, prototypes):
         list_labels = []
@@ -112,9 +115,10 @@ class CGLVQ:
         num_epochs: int,
         training_set: list,
         test_set: list,
-        update_lr,
+        optimizer: callable,
         validation_set: list = None,
         f_score_beta: float = 1,
+        sample_number: dict = None,
     ) -> list:
         """
         Trains the model.
@@ -125,22 +129,27 @@ class CGLVQ:
         num_epochs: number of epochs
         training_set: training set list of tuples (feature, label)
         test_set: test set list of tuples (feature, label)
-        update_lr: function to update the learning rate
+        optimizer: function to update the learning rate
         validation_set: validation set list of tuples (feature, label)
         alpha: parameter for the MS GLVQ learning rate update function
         beta: parameter for the MS GLVQ learning rate update function
         measure: measure to evaluate the model (accuracy or f1_score)
 
-        Output:
-        history: list of dictionary {"epoch":,
-                                    "loss":,
-                                    "accuracy":,
-                                    "f1_score":,
-                                    "prototypes")"""
+        """
 
         if len(self.classes) == 1:
             print("Error: there is only one class in the prototypes")
             return
+
+        if sample_number is None:
+            print("Error: sample_number is None")
+            return
+
+        sum_samples = sum(sample_number.values())
+        sample_weight = {
+            class_num: sample / sum_samples
+            for class_num, sample in sample_number.items()
+        }
 
         for epoch in range(num_epochs):
             # Clear accurence_frequncy
@@ -172,7 +181,7 @@ class CGLVQ:
 
                 # Update learning rate
                 for values in self.prototypes.values():
-                    update_lr(values=values, global_lr=self.global_lr)
+                    optimizer(values=values, global_lr=self.global_lr)
 
                 # Update prototypes
                 common_multiplier = 4 * loss * (1 - loss) / ((d_1 + d_2) ** 2)
@@ -201,12 +210,12 @@ class CGLVQ:
             else:
                 global_loss /= len(training_set)
 
-            # Append learning rate to lr_history
-            stored_classes = []
-            for values in self.prototypes.values():
-                if values["label"] not in stored_classes:
-                    self.lr_hist[values["label"][0]].append(values["lr"])
-                    stored_classes.append(values["label"])
+            # # Append learning rate to lr_history
+            # stored_classes = []
+            # for values in self.prototypes.values():
+            #     if values["label"] not in stored_classes:
+            #         self.lr_hist[values["label"][0]].append(values["lr"])
+            #         stored_classes.append(values["label"])
 
             # Calculate f-score and accuracy
             correct = 0
@@ -224,14 +233,16 @@ class CGLVQ:
 
                 ## f-score counter
                 for class_name, value in f_dict.items():
-                    if x_prediction == x_label and x_prediction == class_name:
-                        value["TP"] += 1
-                    elif x_prediction == x_label and x_prediction != class_name:
-                        value["TN"] += 1
-                    elif x_prediction != x_label and x_prediction == class_name:
-                        value["FP"] += 1
-                    elif x_prediction != x_label and x_prediction != class_name:
-                        value["FN"] += 1
+                    if x_prediction == x_label:
+                        if x_prediction == class_name:
+                            value["TP"] += 1
+                        else:
+                            value["TN"] += 1
+                    else:
+                        if x_prediction == class_name:
+                            value["FP"] += 1
+                        else:
+                            value["FN"] += 1
 
             ## calculate accuracy
             acc = correct / len(test_set)
@@ -250,34 +261,70 @@ class CGLVQ:
                         / ((f_score_beta**2) * (precision + recall))
                     )
                 f_dict[class_name] = score
-
-            hist = {
-                "epoch": self.epoch,
-                "loss": global_loss,
-                "accuracy": acc,
-                "f_score": f_dict,
-                "prototypes": self.prototypes,
-            }
-            self.history.append(hist)
+            weighted_f_score = 0
+            for class_name, value in f_dict.items():
+                weighted_f_score += value * sample_weight[class_name]
 
             self.epoch += 1
-            if self.epoch % 10 == 0 or epoch == num_epochs:
+
+            # Update history
+            ## Update lr_history
+            for i, values in enumerate(self.prototypes.values()):
+                self.history["lr"][i].append(values["lr"])
+            ## Update loss_history
+            self.history["loss"].append(global_loss)
+            ## Update accuracy_history
+            self.history["accuracy"].append(acc)
+            ## Update f_score_history
+            self.history["f_score"].append(weighted_f_score)
+
+            if epoch % 10 == 0 or epoch == num_epochs:
                 print(
-                    f"Epoch: {self.epoch}, Loss: {global_loss:.4f}, Accuracy: {acc*100:.2f} %"
-                )  # , F_{f_score_beta}_score: {[{class_name: f'{round(val*100,2)} %'} for class_name, val in f_dict.items()]}
+                    f"Epoch: {self.epoch}, Loss: {global_loss:.4f}, Accuracy: {acc*100:.2f} %, F_{f_score_beta}_score: {weighted_f_score*100:.2f} %"
+                )
         return self.history
 
-    def lr_graph(self, title: str = None):
-        for class_name, lr_list in self.lr_hist.items():
+    def lr_graph(self, title: str = None, marker: str = None):
+        used_labels = []
+        for prototype_name, lr in self.history["lr"].items():
+            if self.prototypes[prototype_name]["label"][0] in used_labels:
+                label = None
+            else:
+                label = self.prototypes[prototype_name]["label"][0]
+                used_labels.append(label)
             plt.plot(
                 range(self.epoch),
-                lr_list,
-                label=class_name,
-                color=self.colors[class_name],
+                lr,
+                label=label,
+                color=self.colors[self.prototypes[prototype_name]["label"][0]],
+                marker=marker,
+                linestyle="dashed",
             )
         plt.xlabel("Epoch")
         plt.ylabel("Learning rate")
         plt.legend()
-        if title is not None:
+        if title:
+            plt.title(title)
+        plt.show()
+
+    def acc_graph(self, title: str = None):
+        plt.plot(
+            range(self.epoch),
+            self.history["accuracy"],
+        )
+        plt.xlabel("Epoch")
+        plt.ylabel("Accuracy")
+        if title:
+            plt.title(title)
+        plt.show()
+
+    def f1_graph(self, title: str = None):
+        plt.plot(
+            range(self.epoch),
+            self.history["f_score"],
+        )
+        plt.xlabel("Epoch")
+        plt.ylabel("F Score")
+        if title:
             plt.title(title)
         plt.show()
