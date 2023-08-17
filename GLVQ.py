@@ -21,18 +21,9 @@ class GLVQ:
         self.colors = self.get_colors(prototypes)
 
     def get_colors(self, prototypes):
-        color_list = [
-            "red",
-            "green",
-            "blue",
-            "yellow",
-            "black",
-            "orange",
-            "purple",
-            "pink",
-        ]
+        color_list = ["#5171fF", "#fF7151", "#519951"]
         unique_class = self.get_class(prototypes)
-        return {unique_class[i]: color_list[i] for i in range(len(unique_class))}
+        return {unique_class[i]: color_list[i % 3] for i in range(len(unique_class))}
 
     def get_class(self, prototypes):
         list_labels = []
@@ -267,29 +258,32 @@ class GLVQ:
 
     def lr_graph(self, title: str = None, marker: str = None):
         used_labels = []
+        fig, ax = plt.subplots(figsize=(10, 10))
         for prototype_name, lr in self.history["lr"].items():
             if self.prototypes[prototype_name]["label"][0] in used_labels:
                 label = None
             else:
                 label = self.prototypes[prototype_name]["label"][0]
                 used_labels.append(label)
-            plt.plot(
+            ax.plot(
                 range(self.epoch),
                 lr,
                 label=label,
                 color=self.colors[self.prototypes[prototype_name]["label"][0]],
-                marker=marker,
                 linestyle="dashed",
+                marker=marker,
             )
-        plt.xlabel("Epoch")
-        plt.ylabel("Learning rate")
+        plt.xlabel("Epoch", fontsize=14)
+        plt.ylabel("Learning rate", fontsize=14)
         plt.legend()
         if title:
             plt.title(title)
         plt.show()
+        return fig
 
     def acc_graph(self, title: str = None):
-        plt.plot(
+        fig, ax = plt.subplots(figsize=(10, 10))
+        ax.plot(
             range(self.epoch),
             self.history["accuracy"],
         )
@@ -298,9 +292,11 @@ class GLVQ:
         if title:
             plt.title(title)
         plt.show()
+        return fig
 
     def f1_graph(self, title: str = None):
-        plt.plot(
+        fig, ax = plt.subplots(figsize=(10, 10))
+        ax.plot(
             range(self.epoch),
             self.history["f_score"],
         )
@@ -309,3 +305,4 @@ class GLVQ:
         if title:
             plt.title(title)
         plt.show()
+        return fig
