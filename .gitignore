@@ -6,16 +6,8 @@ __pycache__
 # dataset
 dataset/
 
+# images
+images/
 
 # scrap
 scrap.*
-
-# unused ones
-IFE_LVQ.ipynb
-IFE_NN.ipynb
-IFE_CNN.ipynb
-GAN.ipynb
-LVQ_NN/
-
-# models
-model_testing*.ipynb
