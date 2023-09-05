@@ -1,3 +1,9 @@
+"""
+The model is Optimized GLVQ (OGLVQ) model.
+Turning any LVQ model to optimized version of it introduced by Kohonen ...(citation), please refer to the paper when needed.
+Optimization effects the model's learning rate update.
+"""
+
 import numpy as np
 import copy
 import matplotlib.pyplot as plt
@@ -20,12 +26,21 @@ class GLVQ:
         self.classes = self.get_class(prototypes)
         self.colors = self.get_colors(prototypes)
 
-    def get_colors(self, prototypes):
+    def get_colors(self, prototypes) -> dict:
+        """
+        Divides prototypes into color groups by classes in dictionary form
+        For now there are 3 colors: blue, red, green
+        The function used in __init__
+        """
         color_list = ["#5171fF", "#fF7151", "#519951"]
         unique_class = self.get_class(prototypes)
         return {unique_class[i]: color_list[i % 3] for i in range(len(unique_class))}
 
-    def get_class(self, prototypes):
+    def get_class(self, prototypes) -> np.ndarray:
+        """
+        Gets the distinct class groups.
+        The function used in __init__
+        """
         list_labels = []
         for p in prototypes:
             list_labels.append(p[1][0])
@@ -34,16 +49,36 @@ class GLVQ:
         unique_class = np.array(unique_class, dtype=self.labeltype)
         return unique_class
 
-    def create_prototype_dict(self, prototypes, learning_rate):
+    def create_prototype_dict(self, prototypes, learning_rate) -> dict:
+        """
+        Creates each prototype's local values in __init__ part.
+        """
         prototypes_dict = {}
         for i, p in enumerate(prototypes):
             prototypes_dict[i] = {"feature": p[0], "label": p[1], "lr": learning_rate}
         return prototypes_dict
 
-    def sigmoid(self, x):
+    def sigmoid(self, x) -> float:
+        """
+        Activation function for loss
+        """
         return 1 / (1 + np.exp(-x))
 
-    def prediction(self, x):
+    def prediction(self, x) -> tuple:
+        """
+        Function has one parameter, test features
+        Returns tuple of (winner prototype, winner class)
+
+        Test features should be same lenght as the prototypes
+
+        Winner prototype is the closest prototype to the parameter entered
+        Winner class is the class of the winner prototype
+
+        Function has different distance functions for real values and complex values
+
+        Real values: sum of square of feature diffrences
+        Complex values: sum of absolute value of feature diffrences
+        """
         distance = None
         for prototype, values in self.prototypes.items():
             if self.datatype == np.csingle:
@@ -61,7 +96,17 @@ class GLVQ:
                 winner_prototype = prototype
         return winner_prototype, winner_class
 
-    def local_loss(self, x):
+    def local_loss(self, x) -> tuple:
+        """
+        Local loss used in model training
+        The model is GLVQ model, so we calculate two winners: winner_true, winner_false
+
+        Winner_true: closest prototype to the sample with same class than the sample
+        Winner_false: closest prototype to the sample with different class than the sample
+
+        Function returns loss, winner_true to sample distance, winner_true, winner_false to sample distance, winner_false as tuple
+        All these values used in prototype update
+        """
         x_feature, x_label = x
         d_1 = None
         d_2 = None
@@ -92,17 +137,29 @@ class GLVQ:
     def train(
         self,
         num_epochs: int,
-        training_set: list,
-        test_set: list,
+        training_set: list[tuple[np.array, np.array]],
+        test_set: list[tuple[np.array, np.array]],
         f_score_beta: float = 1.0,
         sample_number: dict = None,
-        optimizer: str = "glvq",
-    ):
+    ) -> dict:
         """
-        num_epochs: number of epochs
-        training_set: list of tuples (feature: (np.array), label: (np.array)))
-        test_set: list of tuples (feature: (np.array), label: (np.array)))
-        optimizer: lvq1 or glvq
+        Trains the model returns history of the model as dictionary
+        history = {
+            history of learning rate for each prototype,
+            history of loss,
+            history of accuracy,
+            history of f-score (weighted f-score)
+        }
+        To reach history of any prototype's learning rate use history["lr"][prototype_number]
+
+        Parameters:
+        - num_epochs: number of epochs
+        - training_set: list of tuples (feature, label)
+        - test_set: list of tuples (feature, label)
+        - f_score_beta: beta value for f-score calculation default = 1
+        - sample_number: dictionary of sample numbers for each class (class_name: sample_number)
+
+        sample number is used for weighted f-score calculation
         """
         if len(self.classes) == 1:
             print("Error: there is only one class in the prototypes")
@@ -125,7 +182,7 @@ class GLVQ:
             for x in training_set:
                 x_feature, x_label = x
                 loss, d_1, winner_true, d_2, winner_false = self.local_loss(x)
-                winner_prototype, x_prediction = self.prediction(x_feature)
+                _, x_prediction = self.prediction(x_feature)
 
                 # Update global_loss
                 global_loss += loss
@@ -133,38 +190,24 @@ class GLVQ:
                 common_multiplier = loss * (1 - loss) / ((d_1 + d_2) ** 2)
 
                 # Update learning_rate
-                if optimizer == "lvq1":
-                    if x_prediction == x_label:
-                        s = 1
-                    else:
-                        s = -1
-                    self.prototypes[winner_prototype]["lr"] = self.prototypes[
-                        winner_prototype
-                    ]["lr"] / (1 + (s * self.prototypes[winner_prototype]["lr"]))
-                elif optimizer == "glvq":
-                    self.prototypes[winner_true]["lr"] = self.prototypes[winner_true][
-                        "lr"
-                    ] / (
-                        1
-                        + (
-                            1
-                            * self.prototypes[winner_true]["lr"]
-                            * common_multiplier
-                            * d_2
-                        )
-                    )
+                self.prototypes[winner_true]["lr"] = self.prototypes[winner_true][
+                    "lr"
+                ] / (
+                    1
+                    + (1 * self.prototypes[winner_true]["lr"] * common_multiplier * d_2)
+                )
 
-                    self.prototypes[winner_false]["lr"] = self.prototypes[winner_false][
-                        "lr"
-                    ] / (
-                        1
-                        + (
-                            -1
-                            * self.prototypes[winner_false]["lr"]
-                            * common_multiplier
-                            * d_1
-                        )
+                self.prototypes[winner_false]["lr"] = self.prototypes[winner_false][
+                    "lr"
+                ] / (
+                    1
+                    + (
+                        -1
+                        * self.prototypes[winner_false]["lr"]
+                        * common_multiplier
+                        * d_1
                     )
+                )
 
                 # Update prototypes
                 ## update winner_true
@@ -184,10 +227,6 @@ class GLVQ:
                     * d_1
                     * (x_feature - self.prototypes[winner_false]["feature"])
                 )
-
-            # # Append learning rate to lr_history
-            # for i, values in enumerate(self.prototypes.values()):
-            #     self.lr_hist[i].append(values["lr"])
 
             # Calculate f-score and accuracy
             correct = 0
@@ -256,7 +295,16 @@ class GLVQ:
                 )
         return self.history
 
-    def lr_graph(self, title: str = None, marker: str = None):
+    def lr_graph(self, title: str = None, marker: str = None) -> plt.figure:
+        """
+        Shows learning rate graph for each prototype in combined graph
+        Prototypes are grouped by their class with different colors (for now max 3 colors)
+
+        Function uses matplotlib.pyplot library so use markers according to matplotlib.pyplot library
+        Parameters:
+        - title: title of the graph
+        - marker: marker of the graph
+        """
         used_labels = []
         fig, ax = plt.subplots(figsize=(10, 10))
         for prototype_name, lr in self.history["lr"].items():
@@ -282,6 +330,13 @@ class GLVQ:
         return fig
 
     def acc_graph(self, title: str = None):
+        """
+        Shows accuracy graph of the model
+
+        Function uses matplotlib.pyplot library so use markers according to matplotlib.pyplot library
+        Parameters:
+        - title: title of the graph
+        """
         fig, ax = plt.subplots(figsize=(10, 10))
         ax.plot(
             range(self.epoch),
@@ -295,6 +350,13 @@ class GLVQ:
         return fig
 
     def f1_graph(self, title: str = None):
+        """
+        Shows weighted f-score graph of the model
+
+        Function uses matplotlib.pyplot library so use markers according to matplotlib.pyplot library
+        Parameters:
+        - title: title of the graph
+        """
         fig, ax = plt.subplots(figsize=(10, 10))
         ax.plot(
             range(self.epoch),

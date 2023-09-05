@@ -1,24 +1,26 @@
+"""
+The model uses GLVQ as base model and have learning rate methods from cognitive science
+learning rate methods is in optimizers.py file
+optimizers:
+- Conditional Probalility
+- Dual Factor Heuristic
+- Middle Symmetry (alpha = 1, beta = 0)
+- Loose Symmetry
+- Loose Symmetry with Rarity
+
+the model includes two performance measures:
+
+- Accuracy
+- F-Score (weighed average)
+"""
+
 import numpy as np
 import copy
 import matplotlib.pyplot as plt
 
-"""
-values = {
-    "feature" : narray,
-    "label" : int,
-    "lr" : float,
-    "a": int,
-    "b": int,
-    "c": int,
-    "d": int,
-    }"""
-
 
 class CGLVQ:
     def __init__(self, prototypes: list, lr: float):
-        """
-        prototypes: list of tuples (feature: (np.array), label: (np.array))
-        lr: global learning rate"""
         self.feature_size = len(prototypes[0][0])
         prototypes_copy = copy.deepcopy(prototypes)
         self.global_lr = lr
@@ -35,12 +37,21 @@ class CGLVQ:
         self.classes = self.get_class(prototypes)
         self.colors = self.get_colors(prototypes)
 
-    def get_colors(self, prototypes):
+    def get_colors(self, prototypes) -> dict:
+        """
+        Divides prototypes into color groups by classes in dictionary form
+        For now there are 3 colors: blue, red, green
+        The function used in __init__
+        """
         color_list = ["#5171fF", "#fF7151", "#519951"]
         unique_class = self.get_class(prototypes)
         return {unique_class[i]: color_list[i % 3] for i in range(len(unique_class))}
 
-    def get_class(self, prototypes):
+    def get_class(self, prototypes) -> np.ndarray:
+        """
+        Gets the distinct class groups.
+        The function used in __init__
+        """
         list_labels = []
         for p in prototypes:
             list_labels.append(p[1][0])
@@ -49,16 +60,35 @@ class CGLVQ:
         unique_class = np.array(unique_class, dtype=self.labeltype)
         return unique_class
 
-    def create_prototype_dict(self, prototypes, lr):
+    def create_prototype_dict(self, prototypes, lr) -> dict:
+        """
+        Creates each prototype's local values in __init__ part.
+        """
         prototypes_dict = {}
         for i, p in enumerate(prototypes):
             prototypes_dict[i] = {"feature": p[0], "label": p[1], "lr": lr}
         return prototypes_dict
 
     def sigmoid(self, x):
+        """
+        Activation function for loss
+        """
         return 1 / (1 + np.exp(-x))
 
-    def prediction(self, x):
+    def prediction(self, x) -> str:
+        """
+        Function has one parameter, test features
+        Returns winner prototype number
+
+        Test features should be same lenght as the prototypes
+
+        Winner prototype is the closest prototype to the parameter entered
+
+        Function has different distance functions for real values and complex values
+
+        Real values: sum of square of feature diffrences
+        Complex values: sum of absolute value of feature diffrences
+        """
         distance = None
         for values in self.prototypes.values():
             if self.datatype == np.csingle:
@@ -74,7 +104,17 @@ class CGLVQ:
                 winner = values["label"]
         return winner
 
-    def local_loss(self, x):
+    def local_loss(self, x) -> tuple:
+        """
+        Local loss used in model training
+        The model is GLVQ model, so we calculate two winners: winner_true, winner_false
+
+        Winner_true: closest prototype to the sample with same class than the sample
+        Winner_false: closest prototype to the sample with different class than the sample
+
+        Function returns loss, winner_true to sample distance, winner_true, winner_false to sample distance, winner_false as tuple
+        All these values used in prototype update
+        """
         x_feature, x_label = x
         d_1 = None
         d_2 = None
@@ -104,27 +144,38 @@ class CGLVQ:
     def train(
         self,
         num_epochs: int,
-        training_set: list,
-        test_set: list,
+        training_set: list[tuple[np.array, np.array]],
+        test_set: list[tuple[np.array, np.array]],
         optimizer: callable,
-        validation_set: list = None,
+        validation_set: list[tuple[np.array, np.array]] = None,
         f_score_beta: float = 1,
         sample_number: dict = None,
-    ) -> list:
+    ) -> dict:
         """
         Trains the model.
         If validation_set is not None, the loss will be calculated with the validation set.
         Else, the loss will be calculated with the training set.
 
+        Trains the model returns history of the model as dictionary
+        history = {
+            history of learning rate for each prototype,
+            history of loss,
+            history of accuracy,
+            history of f-score (weighted f-score)
+        }
+        To reach history of any prototype's learning rate use history["lr"][prototype_number]
+
         Parameters:
-        num_epochs: number of epochs
-        training_set: training set list of tuples (feature, label)
-        test_set: test set list of tuples (feature, label)
-        optimizer: function to update the learning rate
-        validation_set: validation set list of tuples (feature, label)
-        alpha: parameter for the MS GLVQ learning rate update function
-        beta: parameter for the MS GLVQ learning rate update function
-        measure: measure to evaluate the model (accuracy or f1_score)
+        - num_epochs: number of epochs
+        - training_set: list of tuples (feature, label)
+        - test_set: list of tuples (feature, label)
+        - optimizer: function to update the learning rate
+        - validation_set: validation set list of tuples (feature, label)
+        - f_score_beta: beta value for f-score calculation default = 1
+        - sample_number: dictionary of sample numbers for each class (class_name: sample_number)
+
+        sample number is used for weighted f-score calculation
+
 
         """
 
@@ -201,13 +252,6 @@ class CGLVQ:
             else:
                 global_loss /= len(training_set)
 
-            # # Append learning rate to lr_history
-            # stored_classes = []
-            # for values in self.prototypes.values():
-            #     if values["label"] not in stored_classes:
-            #         self.lr_hist[values["label"][0]].append(values["lr"])
-            #         stored_classes.append(values["label"])
-
             # Calculate f-score and accuracy
             correct = 0
             f_dict = {}
@@ -270,12 +314,25 @@ class CGLVQ:
             self.history["f_score"].append(weighted_f_score)
 
             if epoch % 10 == 0 or epoch == num_epochs:
+                if f_score_beta == int(f_score_beta):
+                    f_name = int(f_score_beta)
+                else:
+                    f_name = f_score_beta
                 print(
-                    f"Epoch: {self.epoch}, Loss: {global_loss:.4f}, Accuracy: {acc*100:.2f} %, F_{f_score_beta}_score: {weighted_f_score*100:.2f} %"
+                    f"Epoch: {self.epoch}, Loss: {global_loss:.4f}, Accuracy: {acc*100:.2f} %, F_{f_name}_score: {weighted_f_score*100:.2f} %"
                 )
         return self.history
 
-    def lr_graph(self, title: str = None, marker: str = None):
+    def lr_graph(self, title: str = None, marker: str = None) -> plt.figure:
+        """
+        Shows learning rate graph for each prototype in combined graph
+        Prototypes are grouped by their class with different colors (for now max 3 colors)
+
+        Function uses matplotlib.pyplot library so use markers according to matplotlib.pyplot library
+        Parameters:
+        - title: title of the graph
+        - marker: marker of the graph
+        """
         used_labels = []
         fig, ax = plt.subplots(figsize=(10, 10))
         for prototype_name, lr in self.history["lr"].items():
@@ -300,7 +357,14 @@ class CGLVQ:
         plt.show()
         return fig
 
-    def acc_graph(self, title: str = None):
+    def acc_graph(self, title: str = None) -> plt.figure:
+        """
+        Shows accuracy graph of the model
+
+        Function uses matplotlib.pyplot library so use markers according to matplotlib.pyplot library
+        Parameters:
+        - title: title of the graph
+        """
         fig, ax = plt.subplots(figsize=(10, 10))
         ax.plot(
             range(self.epoch),
@@ -313,8 +377,15 @@ class CGLVQ:
         plt.show()
         return fig
 
-    def f1_graph(self, title: str = None):
-        fig , ax = plt.subplots(figsize=(10, 10))
+    def f1_graph(self, title: str = None) -> plt.figure:
+        """
+        Shows weighted f-score graph of the model
+
+        Function uses matplotlib.pyplot library so use markers according to matplotlib.pyplot library
+        Parameters:
+        - title: title of the graph
+        """
+        fig, ax = plt.subplots(figsize=(10, 10))
         ax.plot(
             range(self.epoch),
             self.history["f_score"],
