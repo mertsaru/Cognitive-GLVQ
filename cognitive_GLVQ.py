@@ -92,7 +92,7 @@ class CGLVQ:
         distance = None
         for values in self.prototypes.values():
             if self.datatype == np.csingle:
-                dist_p_x = np.sum(np.abs(values["feature"] - x))
+                dist_p_x = np.sum(np.abs(values["feature"] - x) ** 2)
             else:
                 dist_p_x = np.sum((values["feature"] - x) ** 2)
 
@@ -120,7 +120,7 @@ class CGLVQ:
         d_2 = None
         for prototype, values in self.prototypes.items():
             if self.datatype == np.csingle:
-                dist_p_x = np.sum(np.abs(values["feature"] - x_feature))
+                dist_p_x = np.sum(np.abs(values["feature"] - x_feature) ** 2)
             else:
                 dist_p_x = np.sum((values["feature"] - x_feature) ** 2)
             if values["label"] == x_label:
@@ -293,7 +293,7 @@ class CGLVQ:
                         (1 + (f_score_beta**2))
                         * precision
                         * recall
-                        / ((f_score_beta**2) * (precision + recall))
+                        / (((f_score_beta**2) * precision) + recall)
                     )
                 f_dict[class_name] = score
             weighted_f_score = 0
@@ -349,11 +349,11 @@ class CGLVQ:
                 linestyle="dashed",
                 marker=marker,
             )
-        plt.xlabel("Epoch", fontsize=14)
+        plt.xlabel("Epoch (t)", fontsize=14)
         plt.ylabel("Learning rate", fontsize=14)
         plt.legend()
         if title:
-            plt.title(title)
+            plt.title(title, fontsize=20)
         plt.show()
         return fig
 
@@ -370,10 +370,12 @@ class CGLVQ:
             range(self.epoch),
             self.history["accuracy"],
         )
-        plt.xlabel("Epoch")
-        plt.ylabel("Accuracy")
+        plt.xlabel("Epoch (t)", fontsize=14)
+        plt.ylabel("Accuracy", fontsize=14)
+        plt.ylim(0, 1.01)
+        plt.yticks(np.arange(0, 1.01, step=0.2), ["0%", "20%", "40%", "60%", "80%", "100%"])
         if title:
-            plt.title(title)
+            plt.title(title, fontsize=20)
         plt.show()
         return fig
 
@@ -390,9 +392,11 @@ class CGLVQ:
             range(self.epoch),
             self.history["f_score"],
         )
-        plt.xlabel("Epoch")
-        plt.ylabel("F Score")
+        plt.xlabel("Epoch (t)", fontsize=14)
+        plt.ylabel("F1 Score", fontsize=14)
+        plt.ylim(0, 1.01)
+        plt.yticks(np.arange(0, 1.01, step=0.2), ["0%", "20%", "40%", "60%", "80%", "100%"])
         if title:
-            plt.title(title)
+            plt.title(title, fontsize=20)
         plt.show()
         return fig

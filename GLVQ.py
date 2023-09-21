@@ -82,7 +82,7 @@ class GLVQ:
         distance = None
         for prototype, values in self.prototypes.items():
             if self.datatype == np.csingle:
-                dist_p_x = np.sum(np.abs(values["feature"] - x))
+                dist_p_x = np.sum(np.abs(values["feature"] - x) ** 2)
             else:
                 dist_p_x = np.sum((values["feature"] - x) ** 2)
 
@@ -112,7 +112,7 @@ class GLVQ:
         d_2 = None
         for prototype, values in self.prototypes.items():
             if self.datatype == np.csingle:
-                dist_p_x = np.sum(np.abs(values["feature"] - x_feature))
+                dist_p_x = np.sum(np.abs(values["feature"] - x_feature) ** 2)
             else:
                 dist_p_x = np.sum((values["feature"] - x_feature) ** 2)
 
@@ -194,7 +194,7 @@ class GLVQ:
                     "lr"
                 ] / (
                     1
-                    + (1 * self.prototypes[winner_true]["lr"] * common_multiplier * d_2)
+                    + (1 * self.prototypes[winner_true]["lr"] * 4 * common_multiplier * d_2)
                 )
 
                 self.prototypes[winner_false]["lr"] = self.prototypes[winner_false][
@@ -204,6 +204,7 @@ class GLVQ:
                     + (
                         -1
                         * self.prototypes[winner_false]["lr"]
+                        * 4
                         * common_multiplier
                         * d_1
                     )
@@ -269,7 +270,7 @@ class GLVQ:
                         (1 + (f_score_beta**2))
                         * precision
                         * recall
-                        / ((f_score_beta**2) * (precision + recall))
+                        / (((f_score_beta**2) * precision) + recall)
                     )
                 f_dict[class_name] = score
             weighted_f_score = 0
@@ -321,11 +322,11 @@ class GLVQ:
                 linestyle="dashed",
                 marker=marker,
             )
-        plt.xlabel("Epoch", fontsize=14)
+        plt.xlabel("Epoch (t)", fontsize=14)
         plt.ylabel("Learning rate", fontsize=14)
         plt.legend()
         if title:
-            plt.title(title)
+            plt.title(title, fontsize=20)
         plt.show()
         return fig
 
@@ -342,10 +343,12 @@ class GLVQ:
             range(self.epoch),
             self.history["accuracy"],
         )
-        plt.xlabel("Epoch")
-        plt.ylabel("Accuracy")
+        plt.xlabel("Epoch (t)", fontsize=14)
+        plt.ylabel("Accuracy", fontsize=14)
+        plt.ylim(0, 1.01)
+        plt.yticks(np.arange(0, 1.01, step=0.2), ["0%", "20%", "40%", "60%", "80%", "100%"])
         if title:
-            plt.title(title)
+            plt.title(title, fontsize=20)
         plt.show()
         return fig
 
@@ -362,9 +365,11 @@ class GLVQ:
             range(self.epoch),
             self.history["f_score"],
         )
-        plt.xlabel("Epoch")
-        plt.ylabel("F Score")
+        plt.xlabel("Epoch (t)", fontsize=14)
+        plt.ylabel("F1 Score", fontsize=14)
+        plt.ylim(0, 1.01)
+        plt.yticks(np.arange(0, 1.01, step=0.2), ["0%", "20%", "40%", "60%", "80%", "100%"])
         if title:
-            plt.title(title)
+            plt.title(title, fontsize=20)
         plt.show()
         return fig
