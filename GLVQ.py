@@ -175,6 +175,11 @@ class GLVQ:
             for class_num, sample in sample_number.items()
         }
 
+        if f_score_beta == int(f_score_beta):
+            f_name = int(f_score_beta)
+        else:
+            f_name = f_score_beta
+
         for epoch in range(num_epochs):
             # Clear loss
             global_loss = 0
@@ -194,7 +199,13 @@ class GLVQ:
                     "lr"
                 ] / (
                     1
-                    + (1 * self.prototypes[winner_true]["lr"] * 4 * common_multiplier * d_2)
+                    + (
+                        1
+                        * self.prototypes[winner_true]["lr"]
+                        * 4
+                        * common_multiplier
+                        * d_2
+                    )
                 )
 
                 self.prototypes[winner_false]["lr"] = self.prototypes[winner_false][
@@ -292,7 +303,7 @@ class GLVQ:
 
             if epoch % 10 == 0 or epoch == num_epochs:
                 print(
-                    f"Epoch: {self.epoch}, Loss: {global_loss:.4f}, Accuracy: {acc*100:.2f} %, F_{f_score_beta}_score: {weighted_f_score*100:.2f} %"
+                    f"Epoch: {self.epoch}, Loss: {global_loss:.4f}, Accuracy: {acc*100:.2f} %, F_{f_name}_score: {weighted_f_score*100:.2f} %"
                 )
         return self.history
 
@@ -346,7 +357,9 @@ class GLVQ:
         plt.xlabel("Epoch (t)", fontsize=14)
         plt.ylabel("Accuracy", fontsize=14)
         plt.ylim(0, 1.01)
-        plt.yticks(np.arange(0, 1.01, step=0.2), ["0%", "20%", "40%", "60%", "80%", "100%"])
+        plt.yticks(
+            np.arange(0, 1.01, step=0.2), ["0%", "20%", "40%", "60%", "80%", "100%"]
+        )
         if title:
             plt.title(title, fontsize=20)
         plt.show()
@@ -368,7 +381,9 @@ class GLVQ:
         plt.xlabel("Epoch (t)", fontsize=14)
         plt.ylabel("F1 Score", fontsize=14)
         plt.ylim(0, 1.01)
-        plt.yticks(np.arange(0, 1.01, step=0.2), ["0%", "20%", "40%", "60%", "80%", "100%"])
+        plt.yticks(
+            np.arange(0, 1.01, step=0.2), ["0%", "20%", "40%", "60%", "80%", "100%"]
+        )
         if title:
             plt.title(title, fontsize=20)
         plt.show()
