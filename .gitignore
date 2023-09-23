@@ -1,9 +1,9 @@
-#cache
+# cache
 desktop.ini
 __pycache__
 .vscode
 
-# dataset
+# datasets
 dataset/
 
 # images
@@ -11,3 +11,10 @@ images/
 
 # scrap
 scrap.*
+
+# environment
+.env
+
+# unused models
+model_testing(glass).ipynb
+model_testing(indian_pine).ipynb
