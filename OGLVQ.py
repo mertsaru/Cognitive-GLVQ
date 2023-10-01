@@ -1,12 +1,36 @@
 """
 The model is Optimized GLVQ (OGLVQ) model.
-Turning any LVQ model to optimized version of it introduced by Kohonen ...(citation), please refer to the paper when needed.
+Turning any LVQ model to optimized version of it introduced by Kohonen (1995, pp. 175-189) in "Self-Orgazing Maps" (DOI:https://doi.org/10.1007/978-3-642-97610-0), please refer to the paper when needed.
 Optimization effects the model's learning rate update.
+
+the model includes two performance measures:
+
+- Accuracy
+- F-Score (weighed average)
+
+To use the model please import the file and use the class CGLVQ. Then use class method train with the following parameters:
+    num_epochs: train time
+    training_set: adjust the training set as: list[tuple[np.array, np.array]],
+    test_set: adjust the test set as: list[tuple[np.array, np.array]],
+    validation_set: if you want to use validation set adjust the validation set as: list[tuple[np.array, np.array]] = None,
+    f_score_beta: beta value of the F score, default = 1 any float value can be used,
+    sample_number: Number of training samples each class uses. It is needed to calculate the weighted F scores
+
+One can use the following methods to see the results:
+    lr_graph: shows the learning rate graph for each prototype
+    acc_graph: shows the accuracy graph
+    f1_graph: shows the f1 score graph
+    
+    methods use matplotlib.pyplot library. Title can be added to the graphs as string by adding the title in the method as parameter.
 """
 
 import numpy as np
 import copy
 import matplotlib.pyplot as plt
+
+__author__ = " Mert Saruhan "
+__maintainer__ = " Mert Saruhan "
+__email__ = " mertsaruhn@gmail.com "
 
 
 class OGLVQ:

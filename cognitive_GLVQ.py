@@ -12,11 +12,31 @@ the model includes two performance measures:
 
 - Accuracy
 - F-Score (weighed average)
+
+To use the model please import the file and use the class CGLVQ. Then use class method train with the following parameters:
+    num_epochs: train time
+    training_set: adjust the training set as: list[tuple[np.array, np.array]],
+    test_set: adjust the test set as: list[tuple[np.array, np.array]],
+    optimizer: import the optimizers from optimizers.py and use them as optimizer=optimizer_name,
+    validation_set: if you want to use validation set adjust the validation set as: list[tuple[np.array, np.array]] = None,
+    f_score_beta: beta value of the F score, default = 1 any float value can be used,
+    sample_number: Number of training samples each class uses. It is needed to calculate the weighted F scores
+
+One can use the following methods to see the results:
+    lr_graph: shows the learning rate graph for each prototype
+    acc_graph: shows the accuracy graph
+    f1_graph: shows the f1 score graph
+    
+    methods use matplotlib.pyplot library. Title can be added to the graphs as string by adding the title in the method as parameter.
 """
 
 import numpy as np
 import copy
 import matplotlib.pyplot as plt
+
+__author__ = " Mert Saruhan "
+__maintainer__ = " Mert Saruhan "
+__email__ = " mertsaruhn@gmail.com "
 
 
 class CGLVQ:
@@ -192,7 +212,7 @@ class CGLVQ:
             class_num: sample / sum_samples
             for class_num, sample in sample_number.items()
         }
-        
+
         if f_score_beta == int(f_score_beta):
             f_name = int(f_score_beta)
         else:
@@ -318,7 +338,6 @@ class CGLVQ:
             ## Update f_score_history
             self.history["f_score"].append(weighted_f_score)
 
-            
             if epoch % 10 == 0 or epoch == num_epochs:
                 print(
                     f"Epoch: {self.epoch}, Loss: {global_loss:.4f}, Accuracy: {acc*100:.2f} %, F_{f_name}_score: {weighted_f_score*100:.2f} %"

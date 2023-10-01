@@ -4,6 +4,10 @@ File contains optimizer functions for the learning rate of cognitive GLVQ (CGLVQ
 
 import numpy as np
 
+__author__ = " Mert Saruhan "
+__maintainer__ = " Mert Saruhan "
+__email__ = " mertsaruhn@gmail.com "
+
 
 # Update the learning rate of the prototypes
 def middle_symmetry(
