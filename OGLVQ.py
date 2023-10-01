@@ -9,7 +9,7 @@ import copy
 import matplotlib.pyplot as plt
 
 
-class GLVQ:
+class OGLVQ:
     def __init__(self, prototypes: list, learning_rate: float):
         self.feature_size = len(prototypes[0][0])
         prototypes_copy = copy.deepcopy(prototypes)
