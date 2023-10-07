@@ -370,11 +370,12 @@ class CGLVQ:
                 linestyle="dashed",
                 marker=marker,
             )
-        plt.xlabel("Epoch (t)", fontsize=14)
-        plt.ylabel("Learning rate", fontsize=14)
+        plt.xlabel("Epoch (t)", fontsize=25, weight="bold")
         plt.legend()
+        plt.yticks(fontsize=20)
+        plt.xticks(fontsize=20)
         if title:
-            plt.title(title, fontsize=20)
+            plt.title(title, fontsize=40)
         plt.show()
         return fig
 
@@ -391,14 +392,16 @@ class CGLVQ:
             range(self.epoch),
             self.history["accuracy"],
         )
-        plt.xlabel("Epoch (t)", fontsize=14)
-        plt.ylabel("Accuracy", fontsize=14)
+        plt.xlabel("Epoch (t)", fontsize=25, weight="bold")
         plt.ylim(0, 1.01)
         plt.yticks(
-            np.arange(0, 1.01, step=0.2), ["0%", "20%", "40%", "60%", "80%", "100%"]
+            np.arange(0, 1.01, step=0.2),
+            ["0%", "20%", "40%", "60%", "80%", "100%"],
+            fontsize=20,
         )
+        plt.xticks(fontsize=20)
         if title:
-            plt.title(title, fontsize=20)
+            plt.title(title, fontsize=40)
         plt.show()
         return fig
 
@@ -415,13 +418,15 @@ class CGLVQ:
             range(self.epoch),
             self.history["f_score"],
         )
-        plt.xlabel("Epoch (t)", fontsize=14)
-        plt.ylabel("F1 Score", fontsize=14)
+        plt.xlabel("Epoch (t)", fontsize=25, weight="bold")
         plt.ylim(0, 1.01)
         plt.yticks(
-            np.arange(0, 1.01, step=0.2), ["0%", "20%", "40%", "60%", "80%", "100%"]
+            np.arange(0, 1.01, step=0.2),
+            ["0%", "20%", "40%", "60%", "80%", "100%"],
+            fontsize=20,
         )
+        plt.xticks(fontsize=20)
         if title:
-            plt.title(title, fontsize=20)
+            plt.title(title, fontsize=40)
         plt.show()
         return fig
