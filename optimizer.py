@@ -1,5 +1,9 @@
 """
-File contains optimizer functions for the learning rate of cognitive GLVQ (CGLVQ) model.
+File contains optimizer functions for the learning rate of cognitive GLVQ (CGLVQ) model. More information about the optimizers can be found in:
+- Takahashi, T., Nakano, M., & Shinohara, S. (2010). Cognitive Symmetry: Illogical but Rational Biases. Symmetry Culture and Science. 21. 1-3. https://www.researchgate.net/publication/285850238_Cognitive_Symmetry_Illogical_but_Rational_Biases.
+- Shinohara, S., Taguchi, R., Katsurada, K., & Nitta, T. (2007). A Model of Belief Formation Based on Causality and Application to N-armed Bandit Problem. Transactions of the Japanese Society for Artificial Intelligence, 22(1), 58–68. (in Japanese) https://doi.org/10.1527/tjsai.22.58.
+- Taniguchi, H., Sato, H., & Shirakawa, T. (2018). A machine learning model with human cognitive biases capable of learning from small and biased datasets. Scientific Reports, 8(1). https://doi.org/10.1038/s41598-018-25679-z.
+- Manome, N., Shinohara, S., Takahashi, T., Chen, Y., & Chung, U. (2021). Self-incremental learning vector quantization with human cognitive biases. Scientific Reports, 11(1). https://doi.org/10.1038/s41598-021-83182-4.
 """
 
 import numpy as np
