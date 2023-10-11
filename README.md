@@ -16,7 +16,9 @@ Other datasets can be found in various sources:
 
 Breast Cancer Wisconsin dataset:
 - Kaggle: https://www.kaggle.com/datasets/uciml/breast-cancer-wisconsin-data
-- UW CS FTP server: ftp: ftp.cs.wisc.edu, cd math-prog/cpo-dataset/machine-learn/WDBC/
+- UW CS FTP server: ftp:
+ - ftp.cs.wisc.edu
+ - cd math-prog/cpo-dataset/machine-learn/WDBC/
 - UCI Machine Learning Repository: https://archive.ics.uci.edu/ml/datasets/Breast+Cancer+Wisconsin+%28Diagnostic%29
 
 Iris dataset:
