@@ -3,6 +3,12 @@
 The project is used in my master thesis. 
 This code adapts cognitive-bias learning methods to GLVQ(Generalized Learning Vector Quantization) as learning rate optimizers.
 
+The CGLVQ models can be imported from CGLVQ.py file and be used with requested cognitive-bias model optimizer.
+
+The OGLVQ model can be imported from OGLVQ.py file. OGLVQ is optimized GLVQ and the optimization is made using euclidian distance as distance metric and sigmoid function as activation function.
+
+Both use models euclidian distance as distance metric and sigmoid function as activation function. For both of the models, it is possible to use complex space.
+
  optimizer.py contains 5 different cognitive learning rates, namely:
  - conditional probability
  - dual factor heuristic
