@@ -16,6 +16,8 @@ Both use models euclidian distance as distance metric and sigmoid function as ac
  - loose symmetry
  - lose symmetry with rarity
 
+## Datasets
+
 The SP and NSP datasets used in the training in Jupyter Notebook "model_testing(NSP_F).ipynb" and "model_testing(SP_F).ipynb" are private datasets.
 
 Other datasets can be found in various sources:
