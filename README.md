@@ -1,4 +1,4 @@
-﻿# cognitive GLVQ
+﻿# Cognitive GLVQ
 
 The project is used in my master thesis.
 This code adapts cognitive-bias learning methods to **GLVQ**(Generalized Learning Vector Quantization) as learning rate optimizers.
